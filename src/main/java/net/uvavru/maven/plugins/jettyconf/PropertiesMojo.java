@@ -70,6 +70,26 @@ public class PropertiesMojo extends ResolveDependenciesMojo {
 	protected String classpathPatterns = "";
 
 	/**
+	 * Regexp pattern that will match layout 'groupId:artifactId:type:classifier' string.
+	 * This is how to indicate which artifacts should be considered for the classpath.
+	 * 
+	 * @since 1.0
+	 * @parameter expression="${classpathMatchArtifactPattern}" default-value="[^:]*:[^:]*:jar:[^:]*"
+	 * @optional
+	 */
+	protected String classpathMatchArtifactPattern = "[^:]*:[^:]*:jar:[^:]*";
+
+	/**
+	 * Regexp pattern that will match layout 'groupId:artifactId:type:classifier' string.
+	 * This is how to indicate which artifacts should be considered for the web app resources.
+	 * 
+	 * @since 1.0
+	 * @parameter expression="${webAppMatchArtifactPattern}" default-value="[^:]*:[^:]*:war:[^:]*"
+	 * @optional
+	 */
+	protected String webAppMatchArtifactPattern = "[^:]*:[^:]*:war:[^:]*";
+
+	/**
 	 * Comma Separated list of artifact types current project should mock as
 	 * 
 	 * @since 1.0
@@ -87,6 +107,51 @@ public class PropertiesMojo extends ResolveDependenciesMojo {
 	 * @optional
 	 */
 	protected String classpathReplacements = "";
+	
+	/**
+	 * Whether to add only directories into web app resources.
+	 * Note that jetty accepts only directories!
+	 * 
+	 * @since 1.0
+	 * @parameter expression="${webAppResourcesAsDirsOnly}" default-value="true"
+	 * @optional
+	 */
+	protected boolean webAppResourcesAsDirsOnly = true;
+	
+	/**
+	 * Whether to treat web app paths as windows path.
+	 * In this case single backslash characters are doubled.
+	 * 
+	 * @since 1.0
+	 * @parameter expression="${webappDirNonexistentTreatAsWindowsPath}" default-value="false"
+	 * @optional
+	 */
+	protected boolean webappDirNonexistentTreatAsWindowsPath = false;
+	
+	
+	
+	/**
+	 * If directory for a web app resource doesn't exist this pattern
+	 * is used to transform the file path to a different path.<br>
+	 * Implies {@code webAppResourcesAsDirsOnly} is set to {@code true}
+	 * 
+	 * @since 1.0
+	 * @parameter expression="${webAppDirNonexistentAlternatePattern}" default-value="null"
+	 * @optional
+	 */
+	protected String webAppDirNonexistentAlternatePattern = null;
+	
+	/**
+	 * If directory for a web app resource doesn't exist this pattern
+	 * is used to transform the file path to a different path.
+	 * Implies {@code webAppResourcesAsDirsOnly} is set to {@code true}
+	 * 
+	 * @since 1.0
+	 * @parameter expression="${webAppDirNonexistentAlternateReplacement}" default-value="null"
+	 * @optional
+	 */
+	protected String webAppDirNonexistentAlternateReplacement = null;
+	
 
 	private DependencyStatusSets results;
 
@@ -108,12 +173,21 @@ public class PropertiesMojo extends ResolveDependenciesMojo {
 			results.getResolvedDependencies().add(current);
 		}
 
+		Pattern webAppArtifactPattern = Pattern.compile(webAppMatchArtifactPattern);
+		Pattern classpathArtifactPattern = Pattern.compile(classpathMatchArtifactPattern);
+
 		for (Artifact artifact : results.getResolvedDependencies()) {
 			getLog().debug(
 					"resolved: " + artifact + ", path: " + artifact.getFile());
-			if ("war".equals(artifact.getType())) {
+			String artifactDescriptor = String.format("%s:%s:%s:%s", artifact.getGroupId(), artifact.getArtifactId(), artifact.getType(), artifact.getClassifier());
+			getLog().debug("Matching against descriptor: " + artifactDescriptor);
+			
+			if (webAppArtifactPattern.matcher(artifactDescriptor).matches()) {
+				getLog().debug("adding to webapp resources");
 				webAppResources.add(artifact);
-			} else {
+			}
+			if (classpathArtifactPattern.matcher(artifactDescriptor).matches()) {
+				getLog().debug("adding to classpath resources");
 				classpathResources.add(artifact);
 			}
 		}
@@ -127,7 +201,7 @@ public class PropertiesMojo extends ResolveDependenciesMojo {
 		canonicalPaths(classpathResources, classpathTranslatedFiles);
 
 		for (File file : webAppTranslatedFiles) {
-			getLog().info("webapp URI: " + file.toURI());
+			getLog().debug("webapp URI: " + file.toURI());
 		}
 
 		for (File file : classpathTranslatedFiles) {
@@ -135,13 +209,44 @@ public class PropertiesMojo extends ResolveDependenciesMojo {
 		}
 
 		String webapp = "";
+		Pattern webAppAlternativePattern = null;
+		if (webAppDirNonexistentAlternatePattern != null) {
+			if (webAppDirNonexistentAlternateReplacement == null) {
+				getLog().warn(String.format("Not using %s as web app alternate pattern because 'replacement' is null", webAppDirNonexistentAlternatePattern));
+			} else {
+			webAppAlternativePattern = Pattern.compile(webAppDirNonexistentAlternatePattern);
+			}
+		}
+		if (webappDirNonexistentTreatAsWindowsPath) {
+			webAppDirNonexistentAlternateReplacement = webAppDirNonexistentAlternateReplacement.replace("\\", "\\\\");
+		}
 		for (File file : webAppTranslatedFiles) {
-			if (!file.isDirectory()) {
+			try {
+				if (webAppAlternativePattern != null && !file.isDirectory() && webAppResourcesAsDirsOnly) {
+					if (webAppAlternativePattern.matcher(file.getCanonicalPath()).matches()) {
+						String alternateFilePath = webAppAlternativePattern.matcher(file.getCanonicalPath()).replaceAll(webAppDirNonexistentAlternateReplacement);
+						File alternateFile = new File(alternateFilePath);
+						if (alternateFile.exists() && alternateFile.isDirectory()) {
+							getLog().warn(String.format("transforming '%s' into '%s'", file.getCanonicalPath(), alternateFile.getCanonicalPath()));
+							file = alternateFile;
+						} else {
+							getLog().warn("File " + alternateFilePath + " doesn't exist .. skipping alternate path");
+						}
+					} else {
+						getLog().warn("File " + file.getCanonicalPath() + " doesn't match web alternate pattern.");
+					}
+				} else {
+					getLog().warn("Condition for: " + file + " not met..");
+				}
+			} catch (IOException e) {
+				throw new MojoExecutionException("Cannot generate alternate path for: " + file.getName(), e);
+			}
+			if (file.isDirectory() || !webAppResourcesAsDirsOnly) {
+				webapp += "\n<Item>" + file.toURI() + "</Item>";
+			} else {
 				getLog().warn(
 						"Not adding artifact file: '" + file
 								+ "' into webapps because it's not a directory");
-			} else {
-				webapp += "\n<Item>" + file.toURI() + "</Item>";
 			}
 		}
 		this.getProject().getProperties()
