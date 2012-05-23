@@ -18,7 +18,7 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.IOUtil;
 
 /**
- * @goal copy-template
+ * @goal copy-from-template
  * @requiresDependencyResolution test
  * @execute phase="compile"
  * @description Copies files from the template directory to the
