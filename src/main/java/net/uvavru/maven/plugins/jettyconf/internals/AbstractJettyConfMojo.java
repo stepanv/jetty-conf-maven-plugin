@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -220,7 +221,8 @@ public abstract class AbstractJettyConfMojo extends AbstractMojo {
 		if (webappDirNonexistentTreatAsWindowsPath) {
 			webAppDirNonexistentAlternateReplacement = webAppDirNonexistentAlternateReplacement.replace("\\", "\\\\");
 		}
-		for (File file : webAppFiles) {
+		for (ListIterator<File> fileIt = webAppFiles.listIterator(); fileIt.hasNext(); ) {
+			File file = fileIt.next();
 			try {
 				if (webAppAlternativePattern != null && !file.isDirectory() && webAppResourcesAsDirsOnly) {
 					if (webAppAlternativePattern.matcher(file.getCanonicalPath()).matches()) {
@@ -228,7 +230,7 @@ public abstract class AbstractJettyConfMojo extends AbstractMojo {
 						File alternateFile = new File(alternateFilePath);
 						if (alternateFile.exists() && alternateFile.isDirectory()) {
 							getLog().warn(String.format("transforming '%s' into '%s'", file.getCanonicalPath(), alternateFile.getCanonicalPath()));
-							file = alternateFile;
+							fileIt.set(alternateFile);
 						} else {
 							getLog().debug("File " + alternateFilePath + " doesn't exist .. skipping alternate path");
 						}
@@ -266,7 +268,7 @@ public abstract class AbstractJettyConfMojo extends AbstractMojo {
 		return translatedFiles;
 	}
 	
-	private void addToFilesAsCanonical(Set<Artifact> artifacts, Set<File> files)
+	private void addToFilesAsCanonical(Set<Artifact> artifacts, List<File> files)
 			throws MojoExecutionException {
 		for (Artifact artifact : artifacts) {
 			try {
@@ -343,7 +345,6 @@ public abstract class AbstractJettyConfMojo extends AbstractMojo {
 	 * @see AbstractJettyConfMojo#jettyArtifactCandidates()
 	 * @return dependency artifacts
 	 */
-	@SuppressWarnings("unchecked")
 	private void fetchDependencyArtifacts(List<Artifact> dependencyArtifacts) {
 
 		for (Artifact artifact : (Set<Artifact>) getProject().getArtifacts()) {

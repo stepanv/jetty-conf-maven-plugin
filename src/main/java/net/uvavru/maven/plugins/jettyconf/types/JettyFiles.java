@@ -1,10 +1,12 @@
 package net.uvavru.maven.plugins.jettyconf.types;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-public class JettyFiles extends HashSet<File> implements Set<File> {
+public class JettyFiles extends ArrayList<File> implements List<File> {
 
 	/**
 	 * 

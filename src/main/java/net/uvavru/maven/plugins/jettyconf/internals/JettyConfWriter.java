@@ -3,7 +3,7 @@ package net.uvavru.maven.plugins.jettyconf.internals;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Set;
+import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -12,7 +12,6 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -33,12 +32,12 @@ import org.xml.sax.SAXException;
  */
 public class JettyConfWriter extends XmlWriter {
 	
-	private Set<File> classpathFiles;
-	private Set<File> webAppFiles;
+	private List<File> classpathFiles;
+	private List<File> webAppFiles;
 
-	public JettyConfWriter(Set<File> classpathFiles, Set<File> webAppFiles) {
-		this.classpathFiles = classpathFiles;
-		this.webAppFiles = webAppFiles;
+	public JettyConfWriter(List<File> classpathFiles2, List<File> webappFiles2) {
+		this.classpathFiles = classpathFiles2;
+		this.webAppFiles = webappFiles2;
 	}
 	
 	private XPath xpath = XPathFactory.newInstance().newXPath();
