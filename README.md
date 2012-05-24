@@ -1,4 +1,4 @@
-Jetty context XML configuration plugin generator helper.
+Jetty context XML configuration file Maven plugin generator helper.
 =======================		
 
 Main features
