@@ -17,6 +17,40 @@
 	<properties>
 		<mavenFilteringVersion>1.0</mavenFilteringVersion>
 	</properties>
+	
+	<description>
+		
+		Jetty context XML configuration plugin generator helper.
+		
+		
+		This plugin helps you to generate your Context XML file with a dynamic content such as:
+			* classpath entries
+			* web app resources
+			* maven properties
+			
+		Plugin needs a template Jetty context XML file where the dynamic content is injected.
+		
+		Injection of dynamic content is supported as:
+			* altering the DOM with new values
+			* with enabled filtering dynamic values can be replaced as properties (see bellow)
+		
+		Filtering of the template file is supported. 
+		Basically it means you can include content from your maven properties in your context XML file.
+		
+		If desired plugin sets two maven properties with the dynamic content:
+			* jetty.conf-plugin.classpath
+			* jetty.conf-plugin.webapp
+		These properties might be used for filtering as well.
+		
+
+		Plugin resolves project dependency artifacts. 
+		These artifacts are transformed into webapp resources and classpath entries.
+		
+		
+		Works with multi-module projects.
+		Works in Eclipse with enabled m2e.
+		 		
+	</description>
 
 	<dependencies>
 	

@@ -25,21 +25,18 @@ import net.uvavru.maven.plugins.jettyconf.types.ArtifactCandidates;
 import net.uvavru.maven.plugins.jettyconf.types.JettyFiles;
 
 import org.apache.maven.execution.MavenSession;
-import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.shared.filtering.MavenFileFilter;
 import org.apache.maven.shared.filtering.MavenFilteringException;
 import org.apache.maven.shared.filtering.MavenResourcesExecution;
 import org.codehaus.plexus.util.FileUtils.FilterWrapper;
-import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.ReaderFactory;
 
 /**
  * @goal copy-from-template
  * @requiresDependencyResolution test
- * @execute phase="compile"
  * @description Copies files from the template directory to the
  */
 public class JettyConfCopyMojo extends AbstractJettyConfMojo {
@@ -73,32 +70,69 @@ public class JettyConfCopyMojo extends AbstractJettyConfMojo {
 	}
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
+		
 		ArtifactCandidates artifactCandidates = jettyArtifactCandidates();
+		
+		InputStream inStream = readTemplateFile(artifactCandidates);
+		
+		filterAndWriteFileIfChanged(inStream);
 
-		JettyFiles classpathFiles = filterAndTranslateClasspathArtifacts(artifactCandidates);
-		JettyFiles webappFiles = filterAndTranslateWebAppArtifacts(artifactCandidates);
-
-		// Write new configuration file to an output stream
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		JettyConfWriter writer = new JettyConfWriter(classpathFiles,
-				webappFiles);
-
-		try {
-			writer.writeToStream(outputStream, contextXmlTemplate);
-		} catch (Exception e) {
-			throw new MojoExecutionException(
-					"Cannot generate Jetty configuration: " + e.getMessage(), e);
+	}
+	
+	private InputStream readTemplateFile(ArtifactCandidates artifactCandidates) throws MojoExecutionException {
+		if (parseAsXml) {
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+	
+			JettyFiles classpathFiles = filterAndTranslateClasspathArtifacts(artifactCandidates);
+			JettyFiles webappFiles = filterAndTranslateWebAppArtifacts(artifactCandidates);
+	
+			// Write new configuration file to an output stream
+			JettyConfWriter writer = new JettyConfWriter(classpathFiles,
+					webappFiles);
+	
+			try {
+				writer.writeToStream(outputStream, contextXmlTemplate);
+				
+				return new ByteArrayInputStream(
+						outputStream.toByteArray());
+			} catch (Exception e) {
+				throw new MojoExecutionException(
+						"Cannot generate Jetty configuration: " + e.getMessage(), e);
+			}
+		} else {
+			try {
+				if (filtering) {
+					// if filtering is not enabled, there is no need to generate these properties
+					initializeJettyConfProperties(artifactCandidates);
+				}
+				
+				return new FileInputStream(contextXmlTemplate);
+			} catch (Exception e) {
+				throw new MojoExecutionException(
+						"Cannot read Jetty configuration template: " + e.getMessage(), e);
+			}
 		}
-
+	}
+	
+	private void filterAndWriteFileIfChanged(InputStream inStream) throws MojoExecutionException, MojoFailureException {
 		// conditionally filter the output
 		if (filtering) {
-			InputStream inStream = new ByteArrayInputStream(
-					outputStream.toByteArray());
-			outputStream = new ByteArrayOutputStream();
+			
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 			
 			filterInputToOutputStream(inStream, outputStream);
+			writeFileIfChanged(outputStream.toByteArray());
+		} else {
+			try {
+				writeFileIfChanged(IOUtil.toByteArray(inStream));
+			} catch (IOException e) {
+				throw new MojoExecutionException(
+						"Cannot write Jetty configuration template: " + e.getMessage(), e);
+			}
 		}
+	}
 
+	private void writeFileIfChanged(byte[] newConfigFileContent) throws MojoExecutionException {
 		File configurationFile = new File(confTargetDir
 				+ System.getProperty("file.separator")
 				+ contextXmlTemplate.getName());
@@ -115,14 +149,13 @@ public class JettyConfCopyMojo extends AbstractJettyConfMojo {
 			}
 			FileInputStream inputStreamOld = new FileInputStream(
 					configurationFile);
-			byte[] newConfigArray = outputStream.toByteArray();
 			ByteArrayInputStream inputStreamNew = new ByteArrayInputStream(
-					newConfigArray);
+					newConfigFileContent);
 
 			if (!IOUtil.contentEquals(inputStreamOld, inputStreamNew)) {
 				OutputStream confFileOutputStream = new FileOutputStream(
 						configurationFile);
-				IOUtil.copy(newConfigArray, confFileOutputStream);
+				IOUtil.copy(newConfigFileContent, confFileOutputStream);
 				confFileOutputStream.flush();
 				confFileOutputStream.close();
 
@@ -133,14 +166,13 @@ public class JettyConfCopyMojo extends AbstractJettyConfMojo {
 						"Preserving old context xml file at: "
 								+ configurationFile);
 			}
-			outputStream.close();
 			inputStreamNew.close();
 			inputStreamOld.close();
 		} catch (IOException e) {
 			throw new MojoExecutionException(
 					"Cannot write Jetty configuration: " + e.getMessage(), e);
 		}
-
+		
 	}
 
 	private void filterInputToOutputStream(InputStream inStream, OutputStream outStream)
@@ -164,6 +196,7 @@ public class JettyConfCopyMojo extends AbstractJettyConfMojo {
 
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public void initializeDelimiters(MavenResourcesExecution mavenResourcesExecution) {
 		// if these are NOT set, just use the defaults, which are '${*}' and '@'.
         if ( delimiters != null && !delimiters.isEmpty() )
@@ -193,7 +226,7 @@ public class JettyConfCopyMojo extends AbstractJettyConfMojo {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void createDefaultFilteringReader(
+	private void createDefaultFilteringReader(
 			MavenResourcesExecution mavenResourcesExecution,
 			InputStream inStream, OutputStream outStream) throws IOException,
 			MavenFilteringException {
@@ -291,7 +324,8 @@ public class JettyConfCopyMojo extends AbstractJettyConfMojo {
      * @parameter
      * @since 2.4
      */
-    protected List delimiters;
+    @SuppressWarnings("rawtypes")
+	protected List delimiters;
     
     
     /**
@@ -306,8 +340,21 @@ public class JettyConfCopyMojo extends AbstractJettyConfMojo {
     protected boolean escapeWindowsPaths;
     
     /**
-     * Whether to escape backslashes and colons in windows-style paths.
+     * Whether to filter the context xml file template (ie. maven filtering token can be replaced with maven properties).<br>
+     * The same rules apply as with resources filtering in 'maven-resources-plugin'.
      * @parameter expression="${filtering}" default-value="false"
      */
     protected boolean filtering;
+    
+    /**
+     * Whether to parse the xml template and inject dynamic values (ie. web app resources and classpath entries) into the dom.<p>
+     * If set to false, maven properties:
+     * <ul><li>{@code jetty.conf-plugin.classpath}</li> and <li>{@code jetty.conf-plugin.webapp}</li></ul>
+     * should be included in the template otherwise these values won't be set.<br>
+     * In this case {@link #filtering} should be set to {@code true}.<p>
+     * If you care about performance you should now that parsing as xml might take about twice longer.
+     * 
+     * @parameter expression="${parseAsXml}" default-value="true"
+     */
+    protected boolean parseAsXml;
 }

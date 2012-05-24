@@ -389,5 +389,35 @@ public abstract class AbstractJettyConfMojo extends AbstractMojo {
     public void setProject(MavenProject project) {
         this.project = project;
     }
+    
+    /**
+     * Initializes properties:
+     * <ul><li>{@code jetty.conf-plugin.classpath}</li> and <li>{@code jetty.conf-plugin.webapp}</li></ul>
+     * 
+     * @param artifactCandidates
+     * @throws MojoExecutionException
+     */
+    public void initializeJettyConfProperties(ArtifactCandidates artifactCandidates) throws MojoExecutionException {
+    	JettyFiles classpathFiles = filterAndTranslateClasspathArtifacts(artifactCandidates);
+		
+		JettyFiles webappFiles = filterAndTranslateWebAppArtifacts(artifactCandidates);
+		
+		String webapp = "";
+		for (File file : webappFiles) {
+			webapp += "\n<Item>" + file.toURI() + "</Item>";
+		}
+		project.getProperties()
+				.setProperty("jetty.conf-plugin.webapp", webapp);
+
+		String classpath = "";
+		for (File file : classpathFiles) {
+			classpath += "\n" + file.toURI() + ";";
+		}
+		project.getProperties()
+				.setProperty("jetty.conf-plugin.classpath", classpath);
+
+		getLog().info(
+				"Generated properties 'jetty.conf-plugin.classpath' and 'jetty.conf-plugin.webapp'");
+    }
 
 }
