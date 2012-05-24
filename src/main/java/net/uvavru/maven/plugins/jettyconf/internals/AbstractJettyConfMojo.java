@@ -229,7 +229,7 @@ public abstract class AbstractJettyConfMojo extends AbstractMojo {
 						String alternateFilePath = webAppAlternativePattern.matcher(file.getCanonicalPath()).replaceAll(webAppDirNonexistentAlternateReplacement);
 						File alternateFile = new File(alternateFilePath);
 						if (alternateFile.exists() && alternateFile.isDirectory()) {
-							getLog().warn(String.format("transforming '%s' into '%s'", file.getCanonicalPath(), alternateFile.getCanonicalPath()));
+							getLog().debug(String.format("transforming '%s' into '%s'", file.getCanonicalPath(), alternateFile.getCanonicalPath()));
 							fileIt.set(alternateFile);
 						} else {
 							getLog().debug("File " + alternateFilePath + " doesn't exist .. skipping alternate path");
