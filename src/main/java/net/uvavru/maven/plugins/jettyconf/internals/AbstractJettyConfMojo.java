@@ -37,7 +37,7 @@ public abstract class AbstractJettyConfMojo extends AbstractMojo {
 	 * 
 	 * @parameter alias="useTestClasspath" default-value="false"
 	 */
-	private boolean useTestScope;
+	protected boolean useTestScope;
 
 	/**
 	 * Comma Separated list of regexp patterns indicating how webapp resources
@@ -112,7 +112,8 @@ public abstract class AbstractJettyConfMojo extends AbstractMojo {
 	private Set<Artifact> filterArtifacts(List<Artifact> artifacts,
 			Pattern pattern) {
 		Set<Artifact> artifactsFiltered = new HashSet<Artifact>();
-
+		
+		getLog().debug("Matching artifacts with pattern: " + pattern);
 		for (Artifact artifact : artifacts) {
 			getLog().debug(
 					"resolved: " + artifact + ", path: " + artifact.getFile());
