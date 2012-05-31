@@ -4,6 +4,12 @@
 	xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<modelVersion>4.0.0</modelVersion>
 
+	<parent>
+		<groupId>org.sonatype.oss</groupId>
+		<artifactId>oss-parent</artifactId>
+		<version>7</version>
+	</parent>
+
 
 	<groupId>net.uvavru.maven.plugin</groupId>
 	<artifactId>jetty-conf-maven-plugin</artifactId>
@@ -11,8 +17,8 @@
 	<packaging>maven-plugin</packaging>
 
 	<name>jetty-conf-maven-plugin Maven Plugin</name>
-	<url>http://maven.apache.org</url>
 
+	<url>https://github.com/stepanv/jetty-conf-maven-plugin</url>
 
 	<properties>
 		<mavenFilteringVersion>1.0</mavenFilteringVersion>
@@ -60,8 +66,6 @@
 		</license>
 	</licenses>
 
-	<url>https://github.com/stepanv/jetty-conf-maven-plugin</url>
-
 	<scm>
 		<connection>scm:git:git@github.com:stepanv/jetty-conf-maven-plugin.git</connection>
 		<url>scm:git:git@github.com:stepanv/jetty-conf-maven-plugin.git</url>
@@ -96,6 +100,23 @@
 			</build>
 		</profile>
 	</profiles>
+
+	<distributionManagement>
+		<repository>
+			<uniqueVersion>false</uniqueVersion>
+			<id>sonatype-releases</id>
+			<name>Sonatype staging repository</name>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+			<layout>default</layout>
+		</repository>
+		<snapshotRepository>
+			<uniqueVersion>true</uniqueVersion>
+			<id>sonatype-snapshots</id>
+			<name>Sonatype snapshots repository</name>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+			<layout>default</layout>
+		</snapshotRepository>
+	</distributionManagement>
 
 	<developers>
 		<developer>
