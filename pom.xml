@@ -10,7 +10,7 @@
 	<version>1.0-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 
-	<name>jetty-conf-maven-plugin Maven Mojo</name>
+	<name>jetty-conf-maven-plugin Maven Plugin</name>
 	<url>http://maven.apache.org</url>
 
 
@@ -51,6 +51,60 @@
 		Works in Eclipse with enabled m2e.
 		 		
 	</description>
+
+	<licenses>
+		<license>
+			<name>The Apache Software License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<url>https://github.com/stepanv/jetty-conf-maven-plugin</url>
+
+	<scm>
+		<connection>scm:git:git@github.com:stepanv/jetty-conf-maven-plugin.git</connection>
+		<url>scm:git:git@github.com:stepanv/jetty-conf-maven-plugin.git</url>
+		<developerConnection>scm:git:git@github.com:stepanv/jetty-conf-maven-plugin.git</developerConnection>
+	</scm>
+
+	<profiles>
+		<profile>
+			<id>release-sign-artifacts</id>
+			<activation>
+				<property>
+					<name>performRelease</name>
+					<value>true</value>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
+	<developers>
+		<developer>
+			<id>stepanv</id>
+			<name>Stepan Vavra</name>
+			<email>vavra.stepan@gmail.com</email>
+		</developer>
+	</developers>
+	
 
 	<dependencies>
 	
